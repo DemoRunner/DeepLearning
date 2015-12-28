@@ -35,7 +35,10 @@ References:
 
 
 class LeNetConvPoolLayer(object):
-    """Pool Layer of a convolutional network """
+    """
+    Pool Layer of a convolutional network .In fact,this contain two layer which are
+    convolution layer and sub-sampling layer
+    """
 
     def __init__(self, rng, input, filter_shape, image_shape, poolsize=(2, 2)):
         """
