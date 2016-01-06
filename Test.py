@@ -1,6 +1,5 @@
 import cPickle
 
-
 class A(object):
 
     def __init__(self):
@@ -21,5 +20,3 @@ class B(object):
         print(self.b)
 if __name__ == '__main__':
     b = B()
-    with open('best_model1.pkl', 'w') as f:
-        cPickle.dump(b, f)

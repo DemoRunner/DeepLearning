@@ -6,6 +6,7 @@ import numpy
 import theano
 import theano.tensor as T
 from logistic_sgd import LogisticRegression, load_data
+from Tools import accuracy, saveimage
 """
 This tutorial introduces the multilayer perceptron using Theano.
 
@@ -415,9 +416,10 @@ def predict():
     datasets = load_data(dataset)
     test_set_x, test_set_y = datasets[2]
     test_set_x = test_set_x.get_value()
-    predicted_values = predict_model(test_set_x[:10])
-    print ("Predicted values for the first 10 examples in test set:")
-    print predicted_values
+    test_set_y = test_set_y.eval()
+    predicted_values = predict_model(test_set_x)
+    accuracy(test_set_y, predicted_values)
+    saveimage(test_set_x, test_set_y, predicted_values)
 if __name__ == '__main__':
-    test_mlp()
+    # test_mlp()
     predict()

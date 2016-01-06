@@ -8,6 +8,7 @@ import numpy
 
 import theano
 import theano.tensor as T
+from Tools import accuracy, saveimage
 """
 This tutorial introduces logistic regression using Theano and stochastic
 gradient descent.
@@ -459,12 +460,14 @@ def predict():
     dataset = 'mnist.pkl.gz'
     datasets = load_data(dataset)
     test_set_x, test_set_y = datasets[2]
+    # test_set_x is TensorSharedVariable,but test_set_y is TensorVariable
     test_set_x = test_set_x.get_value()
-    predicted_values = predict_model(test_set_x[:10])
-    print ("Predicted values for the first 10 examples in test set:")
-    print predicted_values
-
-
+    test_set_y = test_set_y.eval()
+    predicted_values = predict_model(test_set_x)
+    # get the accuracy
+    accuracy(test_set_y, predicted_values)
+    # save the error image
+    saveimage(test_set_x, test_set_y, predicted_values)
 if __name__ == '__main__':
     # sgd_optimization_mnist()
     predict()
