@@ -1,3 +1,4 @@
+import dill
 import os
 import sys
 import timeit
@@ -8,6 +9,7 @@ from theano.tensor.signal import downsample
 from theano.tensor.nnet import conv
 from logistic_sgd import LogisticRegression, load_data
 from mlp import HiddenLayer
+
 
 """This tutorial introduces the LeNet5 neural network architecture
 using Theano.  LeNet5 is a convolutional neural network, good for
@@ -115,6 +117,106 @@ class LeNetConvPoolLayer(object):
         self.input = input
 
 
+class LeNet(object):
+    """Convolutional Neural Networks (LeNet) Class
+
+    This LeNet is a special kind of multi-layer neural
+    networks that has two LeNetConvPoolLayer(the details you can find in
+    LeNetConvPoolLayer class of this file.the first convolution layer has 20 kerns,
+    the second has 50 kerns. ),one hidden layer and one LogisticRegression layer.
+    In order to show more image,it can be simplified "LeNet5=input+LeNetConvPoolLayer_1+
+    LeNetConvPoolLayer_2+HiddenLayer+LogisticRegression+output"
+    """
+
+    def __init__(self, rng, input, nkerns, batch_size, n_hidden, n_out):
+        """Initialize the parameters for the LeNet
+        :type rng: numpy.random.RandomState
+        :param rng: a random number generator used to initialize weights
+
+        :type input: theano.tensor.TensorType
+        :param input: symbolic variable that describes the input of the
+        architecture (one minibatch)
+
+        :type nkerns: list of ints
+        :param nkerns: number of kernels on each convolution layer,eg:nkerns[0]
+        is on behalf of the number of kernels in the first convolution layer.
+
+        :type batch_size: int
+        :param batch_size: size of every bath
+
+        :type n_hidden: int
+        :param n_hidden: number of hidden units
+
+        :type n_out: int
+        :param n_out: number of output units, the dimension of the space in
+        which the labels lie
+
+        """
+
+        layer0_input = input
+
+        # Construct the first convolutional pooling layer:
+        # filtering reduces the image size to (28-5+1 , 28-5+1) = (24, 24)
+        # maxpooling reduces this further to (24/2, 24/2) = (12, 12)
+        # 4D output tensor is thus of shape (batch_size, nkerns[0], 12, 12)
+        self.layer0 = LeNetConvPoolLayer(
+            rng,
+            input=layer0_input,
+            image_shape=(batch_size, 1, 28, 28),
+            filter_shape=(nkerns[0], 1, 5, 5),
+            poolsize=(2, 2)
+        )
+
+        # Construct the second convolutional pooling layer
+        # filtering reduces the image size to (12-5+1, 12-5+1) = (8, 8)
+        # maxpooling reduces this further to (8/2, 8/2) = (4, 4)
+        # 4D output tensor is thus of shape (batch_size, nkerns[1], 4, 4)
+        self.layer1 = LeNetConvPoolLayer(
+            rng,
+            input=self.layer0.output,
+            image_shape=(batch_size, nkerns[0], 12, 12),
+            filter_shape=(nkerns[1], nkerns[0], 5, 5),
+            poolsize=(2, 2)
+        )
+
+        # the HiddenLayer being fully-connected, it operates on 2D matrices of
+        # shape (batch_size, num_pixels) (i.e matrix of rasterized images).
+        # This will generate a matrix of shape (batch_size, nkerns[1] * 4 * 4),
+        # or (500, 50 * 4 * 4) = (500, 800) with the default values.
+        self.layer2_input = self.layer1.output.flatten(2)
+
+        # construct a fully-connected sigmoidal layer
+        self.layer2 = HiddenLayer(
+            rng,
+            input=self.layer2_input,
+            n_in=nkerns[1] * 4 * 4,
+            n_out=n_hidden,
+            activation=T.tanh
+        )
+
+        # classify the values of the fully-connected sigmoidal layer
+        self.layer3 = LogisticRegression(
+            input=self.layer2.output, n_in=n_hidden, n_out=n_out)
+
+        # negative log likelihood of the MLP is given by the negative
+        # log likelihood of the output of the model, computed in the
+        # logistic regression layer
+        self.negative_log_likelihood = (
+            self.layer3.negative_log_likelihood
+        )
+
+        # same holds for the function computing the number of errors
+        self.errors = self.layer3.errors
+
+        # the parameters of the model are the parameters of the all layer it is
+        # made out of
+        self.params = self.layer3.params + self.layer2.params + \
+            self.layer1.params + self.layer0.params
+        # end-snippet-3
+        # keep track of model input
+        self.input = input
+
+
 def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
                     dataset='mnist.pkl.gz',
                     nkerns=[20, 50], batch_size=500):
@@ -169,57 +271,25 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
     # Reshape matrix of rasterized images of shape (batch_size, 28 * 28)
     # to a 4D tensor, compatible with our LeNetConvPoolLayer
     # (28, 28) is the size of MNIST images.
-    layer0_input = x.reshape((batch_size, 1, 28, 28))
+    input = x.reshape((batch_size, 1, 28, 28))
 
-    # Construct the first convolutional pooling layer:
-    # filtering reduces the image size to (28-5+1 , 28-5+1) = (24, 24)
-    # maxpooling reduces this further to (24/2, 24/2) = (12, 12)
-    # 4D output tensor is thus of shape (batch_size, nkerns[0], 12, 12)
-    layer0 = LeNetConvPoolLayer(
-        rng,
-        input=layer0_input,
-        image_shape=(batch_size, 1, 28, 28),
-        filter_shape=(nkerns[0], 1, 5, 5),
-        poolsize=(2, 2)
+    # construct the LeNet class
+    classifier = LeNet(
+        rng=rng,
+        input=input,
+        nkerns=nkerns,
+        batch_size=batch_size,
+        n_hidden=500,
+        n_out=10
     )
-
-    # Construct the second convolutional pooling layer
-    # filtering reduces the image size to (12-5+1, 12-5+1) = (8, 8)
-    # maxpooling reduces this further to (8/2, 8/2) = (4, 4)
-    # 4D output tensor is thus of shape (batch_size, nkerns[1], 4, 4)
-    layer1 = LeNetConvPoolLayer(
-        rng,
-        input=layer0.output,
-        image_shape=(batch_size, nkerns[0], 12, 12),
-        filter_shape=(nkerns[1], nkerns[0], 5, 5),
-        poolsize=(2, 2)
-    )
-
-    # the HiddenLayer being fully-connected, it operates on 2D matrices of
-    # shape (batch_size, num_pixels) (i.e matrix of rasterized images).
-    # This will generate a matrix of shape (batch_size, nkerns[1] * 4 * 4),
-    # or (500, 50 * 4 * 4) = (500, 800) with the default values.
-    layer2_input = layer1.output.flatten(2)
-
-    # construct a fully-connected sigmoidal layer
-    layer2 = HiddenLayer(
-        rng,
-        input=layer2_input,
-        n_in=nkerns[1] * 4 * 4,
-        n_out=500,
-        activation=T.tanh
-    )
-
-    # classify the values of the fully-connected sigmoidal layer
-    layer3 = LogisticRegression(input=layer2.output, n_in=500, n_out=10)
 
     # the cost we minimize during training is the NLL of the model
-    cost = layer3.negative_log_likelihood(y)
+    cost = classifier.layer3.negative_log_likelihood(y)
 
     # create a function to compute the mistakes that are made by the model
     test_model = theano.function(
         [index],
-        layer3.errors(y),
+        classifier.layer3.errors(y),
         givens={
             x: test_set_x[index * batch_size: (index + 1) * batch_size],
             y: test_set_y[index * batch_size: (index + 1) * batch_size]
@@ -228,18 +298,15 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
 
     validate_model = theano.function(
         [index],
-        layer3.errors(y),
+        classifier.layer3.errors(y),
         givens={
             x: valid_set_x[index * batch_size: (index + 1) * batch_size],
             y: valid_set_y[index * batch_size: (index + 1) * batch_size]
         }
     )
 
-    # create a list of all model parameters to be fit by gradient descent
-    params = layer3.params + layer2.params + layer1.params + layer0.params
-
     # create a list of gradients for all model parameters
-    grads = T.grad(cost, params)
+    grads = T.grad(cost, classifier.params)
 
     # train_model is a function that updates the model parameters by
     # SGD Since this model has many parameters, it would be tedious to
@@ -248,7 +315,7 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
     # (params[i], grads[i]) pairs.
     updates = [
         (param_i, param_i - learning_rate * grad_i)
-        for param_i, grad_i in zip(params, grads)
+        for param_i, grad_i in zip(classifier.params, grads)
     ]
 
     train_model = theano.function(
@@ -328,6 +395,10 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
                            'best model %f %%') %
                           (epoch, minibatch_index + 1, n_train_batches,
                            test_score * 100.))
+
+                    # save the best model
+                    with open('best_model-2.pkl', 'w') as f:
+                        dill.dump(classifier, f)
 
             if patience <= iter:
                 done_looping = True
