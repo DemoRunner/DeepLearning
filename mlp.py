@@ -5,8 +5,8 @@ import timeit
 import numpy
 import theano
 import theano.tensor as T
-from logistic_sgd import LogisticRegression, load_data
-from Tools import accuracy, saveimage
+from logistic_sgd import LogisticRegression
+from Tools import accuracy, saveimage, load_data
 """
 This tutorial introduces the multilayer perceptron using Theano.
 
@@ -412,7 +412,7 @@ def predict():
         outputs=classifier.logRegressionLayer.y_pred)
 
     # We can test it on some examples from test test
-    dataset = 'mnist.pkl.gz'
+    dataset = '7-test.pkl.gz'
     datasets = load_data(dataset)
     test_set_x, test_set_y = datasets[2]
     test_set_x = test_set_x.get_value()

@@ -7,8 +7,9 @@ import theano
 import theano.tensor as T
 from theano.tensor.signal import downsample
 from theano.tensor.nnet import conv
-from logistic_sgd import LogisticRegression, load_data
+from logistic_sgd import LogisticRegression
 from mlp import HiddenLayer
+from Tools import load_data, accuracy, saveimage
 
 
 """This tutorial introduces the LeNet5 neural network architecture
@@ -415,7 +416,6 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
 
 if __name__ == '__main__':
     evaluate_lenet5()
-
 
 def experiment(state, channel):
     evaluate_lenet5(state.learning_rate, dataset=state.dataset)
