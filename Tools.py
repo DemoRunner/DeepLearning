@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import cPickle
 import numpy
 from PIL import Image
@@ -54,9 +53,12 @@ def saveimage(test_set_x, test_set_y, predicted_values):
             # the original image is 28*28,you can know
             # that:http://yann.lecun.com/exdb/mnist/
             image = image_data.reshape((28, 28))
+            # a numpy array convert to PIL image
+            PIL_image = Image.fromarray(image)
+            # get the final image name
             image_error = './ErrorImage/Image' + \
-                str(num) + '-' + str(image_lable) + '.png'
-            plt.imsave(image_error, image, cmap=plt.cm.gray)
+                str(num) + '-' + str(image_lable) + '.gif'
+            PIL_image.save(image_error)
 
 
 def imagetodata(image_path, image_lable):
