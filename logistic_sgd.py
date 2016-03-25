@@ -384,6 +384,7 @@ def predict():
     test_set_x = test_set_x.get_value()
     test_set_y = test_set_y.eval()
     predicted_values = predict_model(test_set_x)
+    print(predicted_values)
     # get the accuracy
     accuracy(test_set_y, predicted_values)
     # save the error image

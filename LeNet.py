@@ -413,9 +413,35 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
     print >> sys.stderr, ('The code for file ' +
                           os.path.split(__file__)[1] +
                           ' ran for %.2fm' % ((end_time - start_time) / 60.))
+def predict():
+    """
+    An example of how to load a trained model and use it
+    to predict labels.
+    """
 
+    # load the saved model
+    classifier = dill.load(open('best_model-2.pkl'))
+    # compile a predictor function
+    predict_model = theano.function(
+        inputs=[classifier.input],
+        outputs=classifier.layer3.y_pred)
+
+    # We can test it on some examples from test test
+    dataset = 'mnist.pkl.gz'
+    datasets = load_data(dataset)
+    test_set_x, test_set_y = datasets[2]
+
+    test_set_x = test_set_x.get_value()
+    test_set_x=test_set_x[0:500, ]
+
+    test_set_y = test_set_y.eval()
+    test_set_y = test_set_y[0:500]
+    predicted_values = predict_model(test_set_x)
+
+    accuracy(test_set_y, predicted_values)
+    saveimage(test_set_x, test_set_y, predicted_values)
 if __name__ == '__main__':
-    evaluate_lenet5()
-
+    # evaluate_lenet5()
+    predict()
 def experiment(state, channel):
     evaluate_lenet5(state.learning_rate, dataset=state.dataset)

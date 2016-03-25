@@ -131,18 +131,19 @@ def saveimage(test_set_x, test_set_y, predicted_values):
         if test_set_y[num] != predicted_values[num]:
             image_data = test_set_x[num]
             image_lable = test_set_y[num]
+            pred_lable =predicted_values[num]
             # the original image is 28*28,you can know
             # that:http://yann.lecun.com/exdb/mnist/
-            image = image_data.reshape((28, 28))
+            image = image_data.reshape((28, 28)) * 256
             # a numpy array convert to PIL image
             PIL_image = Image.fromarray(image)
             # get the final image name
             image_error = './ErrorImage/Image' + \
-                str(num) + '-' + str(image_lable) + '.gif'
+                str(num) + '-' + str(image_lable) + '-' + str(pred_lable) + '.gif'
             PIL_image.save(image_error)
 
 
-def imagetodata(image_path, image_lable):
+def imagetodata(image_path, image_lable, batch_size):
     """ make the orignal image to data, which accord with data format of "minist.pkl.gz"
     so all of input are Numerical image
     :type image_path: string
@@ -150,6 +151,8 @@ def imagetodata(image_path, image_lable):
 
     :type image_lable: int
     :param image_lable: the value of image
+    :type batch_size : int
+    :param batch_size : thought one picture to get batch image,but all of this are same.
     """
     # Segmentation path and file name
     if not os.path.exists(image_path):
@@ -160,14 +163,25 @@ def imagetodata(image_path, image_lable):
     image = Image.open(image_path).convert('L')
     # take the PIL image to numpy arrary(the format is accord with
     # "minist.pkl.gz" )
+
     image_ndarray = numpy.asarray(image, dtype='float32') / 256
     # the next few lines is also mean to  accord with "minist.pkl.gz"'s format.
     image_data = image_ndarray.reshape((1, 784))
-    image_lable = array([image_lable])
+    # the format of image_data is [[]],but we need what is []
+    image_data = image_data.tolist()[0]
+    # below lines is to get image_batch.
+    image_batchdata = []
+    image_batchlable = []
+    for i in range(0, batch_size):
+        image_batchdata.append(image_data)
+        image_batchlable.append(image_lable)
+    image_batchdata = numpy.asarray(image_batchdata, dtype='float32')
+    image_batchlable = numpy.asarray(image_batchlable)
+
     # this line you can change,because they are same with each other.
     # but it will not run in theano tutorials code.
-    image = ((image_data, image_lable), (image_data,
-                                         image_lable), (image_data, image_lable))
+    image = ((image_batchdata, image_batchlable), (image_batchdata,
+                                                   image_batchlable), (image_batchdata, image_batchlable))
     # use cPickle to dump image
     write_file = open(image_dir + '/' + image_f.split(".")[0] + '.pkl', 'wb')
     cPickle.dump(image, write_file, 0)

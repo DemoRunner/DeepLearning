@@ -1,4 +1,5 @@
 import cPickle
+from Tools import *
 
 class A(object):
 
@@ -19,4 +20,5 @@ class B(object):
     def methodb(self):
         print(self.b)
 if __name__ == '__main__':
-    b = B()
+    # b = B()
+    imagetodata('./7-test.png',7,500)

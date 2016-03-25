@@ -418,6 +418,7 @@ def predict():
     test_set_x = test_set_x.get_value()
     test_set_y = test_set_y.eval()
     predicted_values = predict_model(test_set_x)
+    print(predicted_values)
     accuracy(test_set_y, predicted_values)
     saveimage(test_set_x, test_set_y, predicted_values)
 if __name__ == '__main__':
